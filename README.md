@@ -18,10 +18,11 @@ A simple self-hosted notes app with rich text support, image pasting, search, an
 
 ## Setup & Running
 
-Install dependencies:
+Install dependencies on ubuntu WSL environment:
 
 ```
-pip install fastapi uvicorn
+apt update
+apt install uvicorn python3-fastapi
 ```
 
 Start the server:
