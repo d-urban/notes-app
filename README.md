@@ -32,6 +32,15 @@ python main.py
 
 Then open your browser at `http://localhost:8000`.
 
+## Systemd Service (Auto-start on Boot)
+
+A script is included to set up a systemd service that starts the app automatically on boot. It dynamically resolves the working directory (from the script's location) and the current user. `sudo` is required.
+
+```
+chmod +x create_systemd_service.sh
+./create_systemd_service.sh
+```
+
 ## Database Migration
 
 If you are upgrading from an older version of the app that used a `type` column (short/long notes), run the migration script once to convert your existing database:
@@ -48,3 +57,4 @@ This will back up your existing `notes.db` to `notes.db.bak` before making any c
 - `database.py` — SQLite database setup and queries
 - `index.html` — Frontend UI served by the app
 - `migrate_from_long_short_to_one_type.py` — One-time migration script for upgrading from older versions
+- `create_systemd_service.sh` — Sets up and enables a systemd service to auto-start the app on boot
