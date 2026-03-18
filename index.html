@@ -10,17 +10,12 @@
     /* Header */
     .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
     .page-header h1 { font-size: 1.6rem; }
-    #mode-select {
-      padding: 7px 12px; border: 1px solid #ccc; border-radius: 4px;
-      font-size: 0.95rem; font-family: inherit; background: #fff; cursor: pointer;
-    }
 
     /* Form */
     #note-form { display: flex; flex-direction: column; gap: 10px; margin-bottom: 32px; }
     #note-form input, #body-input {
       padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; font-family: inherit;
     }
-    #subtitle-input { display: none; }
     #body-input {
       min-height: 100px; resize: both; white-space: pre-wrap; overflow-y: auto;
       outline: none; line-height: 1.5; overflow-wrap: break-word;
@@ -28,6 +23,8 @@
     #body-input:empty:before {
       content: attr(data-placeholder); color: #aaa; pointer-events: none;
     }
+    #body-input.error { border-color: #c00; }
+    #body-error-msg { font-size: 0.75rem; color: #c00; margin-top: -6px; display: none; }
     #body-input img { max-width: 100%; border-radius: 4px; display: block; margin: 6px 0; }
     #note-form button {
       align-self: flex-start; padding: 10px 20px; background: #333; color: #fff;
@@ -69,7 +66,7 @@
 
     /* Search */
     #search-input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; font-family: inherit; margin-bottom: 8px; }
-    #body-search-toggle { display: none; margin-bottom: 8px; font-size: 0.85rem; color: #555; cursor: pointer; }
+    #body-search-toggle { margin-bottom: 8px; font-size: 0.85rem; color: #555; cursor: pointer; }
     #body-search-toggle input { margin-right: 5px; cursor: pointer; }
     #search-count { font-size: 0.85rem; color: #888; margin-bottom: 16px; }
     mark { background: #fff176; border-radius: 2px; padding: 0 1px; }
@@ -79,16 +76,13 @@
 
   <div class="page-header">
     <h1>Notes</h1>
-    <select id="mode-select">
-      <option value="short">Short Notes</option>
-      <option value="long">Long Notes</option>
-    </select>
   </div>
 
   <form id="note-form">
     <input type="text" id="title-input" placeholder="Title" required />
     <input type="text" id="subtitle-input" placeholder="Subtitle" />
     <div id="body-input" contenteditable="true" tabindex="0" data-placeholder="Write your note... (paste screenshots with Ctrl+V)"></div>
+    <span id="body-error-msg">Please fill in this field.</span>
     <div class="form-buttons">
       <button type="submit" id="submit-btn">Add Note</button>
       <button type="button" id="cancel-btn">Cancel</button>
@@ -103,7 +97,6 @@
   <script>
     let editingId = null;
     let allNotes = [];
-    let currentMode = localStorage.getItem('noteMode') || 'short';
 
     const form = document.getElementById('note-form');
     const titleInput = document.getElementById('title-input');
@@ -114,36 +107,11 @@
     const notesList = document.getElementById('notes-list');
     const searchInput = document.getElementById('search-input');
     const searchCount = document.getElementById('search-count');
-    const modeSelect = document.getElementById('mode-select');
-    const bodySearchToggle = document.getElementById('body-search-toggle');
     const searchBody = document.getElementById('search-body');
-
-    // Init dropdown to saved mode
-    modeSelect.value = currentMode;
-    applyMode(currentMode);
-
-    modeSelect.addEventListener('change', () => {
-      currentMode = modeSelect.value;
-      localStorage.setItem('noteMode', currentMode);
-      cancelEdit();
-      searchInput.value = '';
-      searchBody.checked = false;
-      applyMode(currentMode);
-      loadNotes();
-    });
-
-    function applyMode(mode) {
-      if (mode === 'long') {
-        subtitleInput.style.display = 'block';
-        bodySearchToggle.style.display = 'block';
-      } else {
-        subtitleInput.style.display = 'none';
-        bodySearchToggle.style.display = 'none';
-      }
-    }
+    const bodyErrorMsg = document.getElementById('body-error-msg');
 
     async function loadNotes() {
-      const res = await fetch(`/notes?type=${currentMode}`);
+      const res = await fetch('/notes');
       allNotes = await res.json();
       filterAndRender();
     }
@@ -153,12 +121,7 @@
       const terms = q.split(/\s+/).filter(Boolean);
       const filtered = terms.length
         ? allNotes.filter(n => {
-            let searchable;
-            if (currentMode === 'long') {
-              searchable = (n.title + ' ' + (n.subtitle || '') + (searchBody.checked ? ' ' + n.body : '')).toLowerCase();
-            } else {
-              searchable = (n.title + ' ' + n.body).toLowerCase();
-            }
+            const searchable = (n.title + ' ' + (n.subtitle || '') + (searchBody.checked ? ' ' + n.body : '')).toLowerCase();
             return terms.every(term => searchable.includes(term));
           })
         : allNotes;
@@ -185,7 +148,7 @@
         div.className = 'note';
 
         let titleHtml;
-        if (currentMode === 'long' && note.subtitle) {
+        if (note.subtitle) {
           titleHtml = `${highlightTerms(escapeHtml(note.title), terms)} &mdash; ${highlightTerms(escapeHtml(note.subtitle), terms)}`;
         } else {
           titleHtml = highlightTerms(escapeHtml(note.title), terms);
@@ -204,30 +167,30 @@
         `;
         notesList.appendChild(div);
 
-        // Apply collapse only for long notes that actually overflow 10 lines
-        if (currentMode === 'long') {
-          const bodyEl = div.querySelector('.note-body');
-          const actionsEl = div.querySelector('.note-actions');
-          if (bodyEl.scrollHeight > bodyEl.clientHeight) {
-            const toggle = document.createElement('span');
-            toggle.className = 'toggle-body';
-            toggle.textContent = 'Show more';
-            toggle.addEventListener('click', () => {
-              const collapsed = bodyEl.classList.toggle('collapsed');
-              toggle.textContent = collapsed ? 'Show more' : 'Show less';
-            });
-            div.insertBefore(toggle, actionsEl);
-          } else {
-            bodyEl.classList.remove('collapsed');
-          }
+        const bodyEl = div.querySelector('.note-body');
+        const actionsEl = div.querySelector('.note-actions');
+        if (bodyEl.scrollHeight > bodyEl.clientHeight) {
+          const toggle = document.createElement('span');
+          toggle.className = 'toggle-body';
+          toggle.textContent = 'Show more';
+          toggle.addEventListener('click', () => {
+            const collapsed = bodyEl.classList.toggle('collapsed');
+            toggle.textContent = collapsed ? 'Show more' : 'Show less';
+          });
+          div.insertBefore(toggle, actionsEl);
         } else {
-          div.querySelector('.note-body').classList.remove('collapsed');
+          bodyEl.classList.remove('collapsed');
         }
       });
     }
 
     searchInput.addEventListener('input', filterAndRender);
     searchBody.addEventListener('change', filterAndRender);
+
+    bodyInput.addEventListener('input', () => {
+      bodyInput.classList.remove('error');
+      bodyErrorMsg.style.display = 'none';
+    });
 
     // Paste handler: intercept images from clipboard and embed as base64
     bodyInput.addEventListener('paste', (e) => {
@@ -266,20 +229,26 @@
       const title = titleInput.value.trim();
       const subtitle = subtitleInput.value.trim();
       const body = bodyInput.innerHTML.trim();
-      if (!title || !body) return;
+      if (!title) return;
+
+      if (!body) {
+        bodyInput.classList.add('error');
+        bodyErrorMsg.style.display = 'block';
+        return;
+      }
 
       if (editingId !== null) {
         await fetch(`/notes/${editingId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title, subtitle, body, type: currentMode })
+          body: JSON.stringify({ title, subtitle, body })
         });
         cancelEdit();
       } else {
         await fetch('/notes', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title, subtitle, body, type: currentMode })
+          body: JSON.stringify({ title, subtitle, body })
         });
       }
 
@@ -306,6 +275,8 @@
       titleInput.value = '';
       subtitleInput.value = '';
       bodyInput.innerHTML = '';
+      bodyInput.classList.remove('error');
+      bodyErrorMsg.style.display = 'none';
       submitBtn.textContent = 'Add Note';
       cancelBtn.style.display = 'none';
     }

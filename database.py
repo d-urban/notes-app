@@ -18,7 +18,6 @@ def init_db():
             title      TEXT NOT NULL,
             subtitle   TEXT NOT NULL DEFAULT '',
             body       TEXT NOT NULL,
-            type       TEXT NOT NULL DEFAULT 'short',
             created_at TEXT NOT NULL
         )
     """)
@@ -26,34 +25,33 @@ def init_db():
     conn.close()
 
 
-def get_all_notes(note_type: str = "short"):
+def get_all_notes():
     conn = get_connection()
     rows = conn.execute(
-        "SELECT * FROM notes WHERE type = ? ORDER BY created_at DESC",
-        (note_type,)
+        "SELECT * FROM notes ORDER BY created_at DESC"
     ).fetchall()
     conn.close()
     return [dict(row) for row in rows]
 
 
-def create_note(title: str, body: str, subtitle: str = "", note_type: str = "short"):
+def create_note(title: str, body: str, subtitle: str = ""):
     conn = get_connection()
     created_at = datetime.now().isoformat()
     cursor = conn.execute(
-        "INSERT INTO notes (title, subtitle, body, type, created_at) VALUES (?, ?, ?, ?, ?)",
-        (title, subtitle, body, note_type, created_at)
+        "INSERT INTO notes (title, subtitle, body, created_at) VALUES (?, ?, ?, ?)",
+        (title, subtitle, body, created_at)
     )
     conn.commit()
     note_id = cursor.lastrowid
     conn.close()
-    return {"id": note_id, "title": title, "subtitle": subtitle, "body": body, "type": note_type, "created_at": created_at}
+    return {"id": note_id, "title": title, "subtitle": subtitle, "body": body, "created_at": created_at}
 
 
-def update_note(note_id: int, title: str, body: str, subtitle: str = "", note_type: str = "short"):
+def update_note(note_id: int, title: str, body: str, subtitle: str = ""):
     conn = get_connection()
     conn.execute(
-        "UPDATE notes SET title = ?, subtitle = ?, body = ?, type = ? WHERE id = ?",
-        (title, subtitle, body, note_type, note_id)
+        "UPDATE notes SET title = ?, subtitle = ?, body = ? WHERE id = ?",
+        (title, subtitle, body, note_id)
     )
     conn.commit()
     conn.close()

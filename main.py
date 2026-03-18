@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Query
+from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 import uvicorn
@@ -13,7 +13,6 @@ class NoteRequest(BaseModel):
     title: str
     body: str
     subtitle: str = ""
-    type: str = "short"
 
 
 @app.get("/")
@@ -22,18 +21,18 @@ def serve_frontend():
 
 
 @app.get("/notes")
-def get_notes(type: str = Query(default="short")):
-    return database.get_all_notes(note_type=type)
+def get_notes():
+    return database.get_all_notes()
 
 
 @app.post("/notes", status_code=201)
 def create_note(note: NoteRequest):
-    return database.create_note(note.title, note.body, note.subtitle, note.type)
+    return database.create_note(note.title, note.body, note.subtitle)
 
 
 @app.put("/notes/{note_id}")
 def update_note(note_id: int, note: NoteRequest):
-    database.update_note(note_id, note.title, note.body, note.subtitle, note.type)
+    database.update_note(note_id, note.title, note.body, note.subtitle)
     return {"message": "Note updated"}
 
 
