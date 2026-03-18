@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Notes</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Consolas', 'Menlo', 'DejaVu Sans Mono', monospace; max-width: 1400px; margin: 40px auto; padding: 0 20px; color: #222; }
+
+    /* Header */
+    .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+    .page-header h1 { font-size: 1.6rem; }
+    #mode-select {
+      padding: 7px 12px; border: 1px solid #ccc; border-radius: 4px;
+      font-size: 0.95rem; font-family: inherit; background: #fff; cursor: pointer;
+    }
+
+    /* Form */
+    #note-form { display: flex; flex-direction: column; gap: 10px; margin-bottom: 32px; }
+    #note-form input, #body-input {
+      padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; font-family: inherit;
+    }
+    #subtitle-input { display: none; }
+    #body-input {
+      min-height: 100px; resize: both; white-space: pre-wrap; overflow-y: auto;
+      outline: none; line-height: 1.5; overflow-wrap: break-word;
+    }
+    #body-input:empty:before {
+      content: attr(data-placeholder); color: #aaa; pointer-events: none;
+    }
+    #body-input img { max-width: 100%; border-radius: 4px; display: block; margin: 6px 0; }
+    #note-form button {
+      align-self: flex-start; padding: 10px 20px; background: #333; color: #fff;
+      border: none; border-radius: 4px; cursor: pointer; font-size: 1rem;
+    }
+    #note-form button:hover { background: #555; }
+
+    /* Notes list */
+    #notes-list { display: flex; flex-direction: column; gap: 16px; }
+    .note { border: 1px solid #ddd; border-radius: 4px; padding: 16px; }
+    .note-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .note-title { font-weight: bold; font-size: 1.1rem; }
+    .note-date { font-size: 0.8rem; color: #888; }
+    .note-body { white-space: pre-wrap; font-size: 0.95rem; margin-bottom: 12px; line-height: 1.5; }
+    .note-body img { max-width: 100%; border-radius: 4px; display: block; margin: 6px 0; }
+    .note-body.collapsed { max-height: 15em; overflow: hidden; position: relative; margin-bottom: 0; }
+    .note-body.collapsed::after {
+      content: ''; position: absolute; bottom: 0; left: 0; right: 0;
+      height: 3em; background: linear-gradient(transparent, #fff); pointer-events: none;
+    }
+    .toggle-body {
+      display: inline-block; margin: 4px 0 12px; font-size: 0.82rem; color: #666;
+      cursor: pointer; user-select: none;
+    }
+    .toggle-body:hover { color: #333; text-decoration: underline; }
+    .note-actions { display: flex; gap: 8px; }
+    .note-actions button {
+      padding: 6px 14px; border: 1px solid #ccc; border-radius: 4px;
+      cursor: pointer; font-size: 0.85rem; background: #fff;
+    }
+    .note-actions .btn-delete { color: #c00; border-color: #c00; }
+    .note-actions .btn-delete:hover { background: #c00; color: #fff; }
+    .note-actions .btn-edit:hover { background: #eee; }
+
+    #cancel-btn { display: none; padding: 10px 20px; background: #fff; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; font-size: 1rem; }
+    #cancel-btn:hover { background: #eee; }
+    .form-buttons { display: flex; gap: 10px; }
+    #empty-msg { color: #888; font-style: italic; }
+
+    /* Search */
+    #search-input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; font-family: inherit; margin-bottom: 8px; }
+    #body-search-toggle { display: none; margin-bottom: 8px; font-size: 0.85rem; color: #555; cursor: pointer; }
+    #body-search-toggle input { margin-right: 5px; cursor: pointer; }
+    #search-count { font-size: 0.85rem; color: #888; margin-bottom: 16px; }
+    mark { background: #fff176; border-radius: 2px; padding: 0 1px; }
+  </style>
+</head>
+<body>
+
+  <div class="page-header">
+    <h1>Notes</h1>
+    <select id="mode-select">
+      <option value="short">Short Notes</option>
+      <option value="long">Long Notes</option>
+    </select>
+  </div>
+
+  <form id="note-form">
+    <input type="text" id="title-input" placeholder="Title" required />
+    <input type="text" id="subtitle-input" placeholder="Subtitle" />
+    <div id="body-input" contenteditable="true" tabindex="0" data-placeholder="Write your note... (paste screenshots with Ctrl+V)"></div>
+    <div class="form-buttons">
+      <button type="submit" id="submit-btn">Add Note</button>
+      <button type="button" id="cancel-btn">Cancel</button>
+    </div>
+  </form>
+
+  <input type="text" id="search-input" placeholder="Search notes..." />
+  <div id="body-search-toggle"><label><input type="checkbox" id="search-body"> Also search body</label></div>
+  <div id="search-count"></div>
+  <div id="notes-list"></div>
+
+  <script>
+    let editingId = null;
+    let allNotes = [];
+    let currentMode = localStorage.getItem('noteMode') || 'short';
+
+    const form = document.getElementById('note-form');
+    const titleInput = document.getElementById('title-input');
+    const subtitleInput = document.getElementById('subtitle-input');
+    const bodyInput = document.getElementById('body-input');
+    const submitBtn = document.getElementById('submit-btn');
+    const cancelBtn = document.getElementById('cancel-btn');
+    const notesList = document.getElementById('notes-list');
+    const searchInput = document.getElementById('search-input');
+    const searchCount = document.getElementById('search-count');
+    const modeSelect = document.getElementById('mode-select');
+    const bodySearchToggle = document.getElementById('body-search-toggle');
+    const searchBody = document.getElementById('search-body');
+
+    // Init dropdown to saved mode
+    modeSelect.value = currentMode;
+    applyMode(currentMode);
+
+    modeSelect.addEventListener('change', () => {
+      currentMode = modeSelect.value;
+      localStorage.setItem('noteMode', currentMode);
+      cancelEdit();
+      searchInput.value = '';
+      searchBody.checked = false;
+      applyMode(currentMode);
+      loadNotes();
+    });
+
+    function applyMode(mode) {
+      if (mode === 'long') {
+        subtitleInput.style.display = 'block';
+        bodySearchToggle.style.display = 'block';
+      } else {
+        subtitleInput.style.display = 'none';
+        bodySearchToggle.style.display = 'none';
+      }
+    }
+
+    async function loadNotes() {
+      const res = await fetch(`/notes?type=${currentMode}`);
+      allNotes = await res.json();
+      filterAndRender();
+    }
+
+    function filterAndRender() {
+      const q = searchInput.value.toLowerCase();
+      const terms = q.split(/\s+/).filter(Boolean);
+      const filtered = terms.length
+        ? allNotes.filter(n => {
+            let searchable;
+            if (currentMode === 'long') {
+              searchable = (n.title + ' ' + (n.subtitle || '') + (searchBody.checked ? ' ' + n.body : '')).toLowerCase();
+            } else {
+              searchable = (n.title + ' ' + n.body).toLowerCase();
+            }
+            return terms.every(term => searchable.includes(term));
+          })
+        : allNotes;
+      searchCount.textContent = terms.length ? `Showing ${filtered.length} of ${allNotes.length} notes` : `${allNotes.length} notes`;
+      renderNotes(filtered, terms);
+    }
+
+    function highlightTerms(str, terms) {
+      if (!terms.length) return str;
+      const escaped = terms.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+      const pattern = new RegExp(`(<[^>]*>)|(${escaped.join('|')})`, 'gi');
+      return str.replace(pattern, (match, tag, word) => tag ? tag : `<mark>${word}</mark>`);
+    }
+
+    function renderNotes(notes, terms = []) {
+      notesList.innerHTML = '';
+      if (notes.length === 0) {
+        notesList.innerHTML = '<p id="empty-msg">No notes found.</p>';
+        return;
+      }
+      notes.forEach(note => {
+        const date = new Date(note.created_at).toLocaleString();
+        const div = document.createElement('div');
+        div.className = 'note';
+
+        let titleHtml;
+        if (currentMode === 'long' && note.subtitle) {
+          titleHtml = `${highlightTerms(escapeHtml(note.title), terms)} &mdash; ${highlightTerms(escapeHtml(note.subtitle), terms)}`;
+        } else {
+          titleHtml = highlightTerms(escapeHtml(note.title), terms);
+        }
+
+        div.innerHTML = `
+          <div class="note-header">
+            <span class="note-title">${titleHtml}</span>
+            <span class="note-date">${date}</span>
+          </div>
+          <div class="note-body collapsed">${highlightTerms(note.body, terms)}</div>
+          <div class="note-actions">
+            <button class="btn-edit" data-id="${note.id}" onclick="startEditById(${note.id})">Edit</button>
+            <button class="btn-delete" data-id="${note.id}" onclick="deleteNote(this)">Delete</button>
+          </div>
+        `;
+        notesList.appendChild(div);
+
+        // Apply collapse only for long notes that actually overflow 10 lines
+        if (currentMode === 'long') {
+          const bodyEl = div.querySelector('.note-body');
+          const actionsEl = div.querySelector('.note-actions');
+          if (bodyEl.scrollHeight > bodyEl.clientHeight) {
+            const toggle = document.createElement('span');
+            toggle.className = 'toggle-body';
+            toggle.textContent = 'Show more';
+            toggle.addEventListener('click', () => {
+              const collapsed = bodyEl.classList.toggle('collapsed');
+              toggle.textContent = collapsed ? 'Show more' : 'Show less';
+            });
+            div.insertBefore(toggle, actionsEl);
+          } else {
+            bodyEl.classList.remove('collapsed');
+          }
+        } else {
+          div.querySelector('.note-body').classList.remove('collapsed');
+        }
+      });
+    }
+
+    searchInput.addEventListener('input', filterAndRender);
+    searchBody.addEventListener('change', filterAndRender);
+
+    // Paste handler: intercept images from clipboard and embed as base64
+    bodyInput.addEventListener('paste', (e) => {
+      const items = e.clipboardData && e.clipboardData.items;
+      if (!items) return;
+      for (const item of items) {
+        if (item.kind === 'file' && item.type.startsWith('image/')) {
+          e.preventDefault();
+          e.stopPropagation();
+          const file = item.getAsFile();
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            const img = document.createElement('img');
+            img.src = ev.target.result;
+            const sel = window.getSelection();
+            if (sel && sel.rangeCount) {
+              const range = sel.getRangeAt(0);
+              range.deleteContents();
+              range.insertNode(img);
+              range.setStartAfter(img);
+              range.collapse(true);
+              sel.removeAllRanges();
+              sel.addRange(range);
+            } else {
+              bodyInput.appendChild(img);
+            }
+          };
+          reader.readAsDataURL(file);
+          return;
+        }
+      }
+    });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const title = titleInput.value.trim();
+      const subtitle = subtitleInput.value.trim();
+      const body = bodyInput.innerHTML.trim();
+      if (!title || !body) return;
+
+      if (editingId !== null) {
+        await fetch(`/notes/${editingId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, subtitle, body, type: currentMode })
+        });
+        cancelEdit();
+      } else {
+        await fetch('/notes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, subtitle, body, type: currentMode })
+        });
+      }
+
+      titleInput.value = '';
+      subtitleInput.value = '';
+      bodyInput.innerHTML = '';
+      await loadNotes();
+    });
+
+    function startEditById(id) {
+      const note = allNotes.find(n => n.id === id);
+      if (!note) return;
+      editingId = id;
+      titleInput.value = note.title;
+      subtitleInput.value = note.subtitle || '';
+      bodyInput.innerHTML = note.body;
+      submitBtn.textContent = 'Save Changes';
+      cancelBtn.style.display = 'inline-block';
+      titleInput.focus();
+    }
+
+    function cancelEdit() {
+      editingId = null;
+      titleInput.value = '';
+      subtitleInput.value = '';
+      bodyInput.innerHTML = '';
+      submitBtn.textContent = 'Add Note';
+      cancelBtn.style.display = 'none';
+    }
+
+    cancelBtn.addEventListener('click', cancelEdit);
+
+    async function deleteNote(btn) {
+      const id = parseInt(btn.dataset.id);
+      if (!confirm('Delete this note?')) return;
+      await fetch(`/notes/${id}`, { method: 'DELETE' });
+      await loadNotes();
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    loadNotes();
+  </script>
+</body>
+</html>
