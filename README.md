@@ -28,13 +28,13 @@ apt install uvicorn python3-fastapi
 Start the server:
 
 ```
-python main.py
+python3 main.py
 ```
 
 Start the server in background:
 
 ```
-python main.py &
+python3 main.py &
 ```
 Then open your browser at `http://localhost:8000`.
 
