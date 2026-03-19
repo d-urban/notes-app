@@ -47,7 +47,7 @@ chmod +x create_systemd_service.sh
 If you are upgrading from an older version of the app that used a `type` column (short/long notes), run the migration script once to convert your existing database:
 
 ```
-python migrate_from_long_short_to_one_type.py
+python3 migrate_from_long_short_to_one_type.py
 ```
 
 This will back up your existing `notes.db` to `notes.db.bak` before making any changes.
