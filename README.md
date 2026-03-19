@@ -1,6 +1,6 @@
 # Notes App
 
-A simple self-hosted notes app with rich text support, image pasting, search, and more.
+A simple self-hosted notes app with rich text support, image pasting, search, and more. Intended to be used on WSL with ubuntu, but other distros will work with some potential minor tweaks to the instructions (Possibly a different package manager other than apt, or similar).
 
 ## Features
 
@@ -31,6 +31,11 @@ Start the server:
 python main.py
 ```
 
+Start the server in background:
+
+```
+python main.py &
+```
 Then open your browser at `http://localhost:8000`.
 
 ## Systemd Service (Auto-start on Boot)
