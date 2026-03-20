@@ -69,7 +69,7 @@
     #body-search-toggle { margin-bottom: 8px; font-size: 0.85rem; color: #555; cursor: pointer; }
     #body-search-toggle input { margin-right: 5px; cursor: pointer; }
     #search-count { font-size: 0.85rem; color: #888; margin-bottom: 16px; }
-    mark { background: #fff176; border-radius: 2px; padding: 0 1px; }
+    .note-body-inner { }
   </style>
 </head>
 <body>
@@ -136,6 +136,20 @@
       return str.replace(pattern, (match, tag, word) => tag ? tag : `<mark>${word}</mark>`);
     }
 
+    function applyBodyShift(bodyEl) {
+      const inner = bodyEl.querySelector('.note-body-inner');
+      const firstMark = inner && inner.querySelector('mark');
+      if (firstMark) {
+        const shift = Math.max(0, firstMark.offsetTop - 8);
+        inner.style.position = 'absolute';
+        inner.style.top = `-${shift}px`;
+        inner.style.left = '0';
+        inner.style.right = '0';
+        bodyEl.style.height = '15em';
+        bodyEl.style.maxHeight = '';
+      }
+    }
+
     function renderNotes(notes, terms = []) {
       notesList.innerHTML = '';
       if (notes.length === 0) {
@@ -159,7 +173,7 @@
             <span class="note-title">${titleHtml}</span>
             <span class="note-date">${date}</span>
           </div>
-          <div class="note-body collapsed">${highlightTerms(note.body, terms)}</div>
+          <div class="note-body collapsed"><div class="note-body-inner">${highlightTerms(note.body, terms)}</div></div>
           <div class="note-actions">
             <button class="btn-edit" data-id="${note.id}" onclick="startEditById(${note.id})">Edit</button>
             <button class="btn-delete" data-id="${note.id}" onclick="deleteNote(this)">Delete</button>
@@ -176,10 +190,27 @@
           toggle.addEventListener('click', () => {
             const collapsed = bodyEl.classList.toggle('collapsed');
             toggle.textContent = collapsed ? 'Show more' : 'Show less';
+            if (!collapsed) {
+              const inner = bodyEl.querySelector('.note-body-inner');
+              if (inner) {
+                inner.style.position = '';
+                inner.style.top = '';
+                inner.style.left = '';
+                inner.style.right = '';
+              }
+              bodyEl.style.height = '';
+              bodyEl.style.maxHeight = '';
+            } else if (terms.length && searchBody.checked) {
+              applyBodyShift(bodyEl);
+            }
           });
           div.insertBefore(toggle, actionsEl);
         } else {
           bodyEl.classList.remove('collapsed');
+        }
+
+        if (terms.length && searchBody.checked) {
+          applyBodyShift(bodyEl);
         }
       });
     }

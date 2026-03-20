@@ -4,6 +4,7 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CURRENT_USER="$(id -un)"
+PYTHON_BIN="$(which python3)"
 SERVICE_NAME="notes-app"
 SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
 
@@ -19,8 +20,10 @@ After=network.target
 [Service]
 User=$CURRENT_USER
 WorkingDirectory=$SCRIPT_DIR
-ExecStart=python3 $SCRIPT_DIR/main.py
+ExecStart=$PYTHON_BIN $SCRIPT_DIR/main.py
 Restart=on-failure
+KillMode=mixed
+TimeoutStopSec=10
 
 [Install]
 WantedBy=multi-user.target
