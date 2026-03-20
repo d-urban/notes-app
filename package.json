@@ -1,0 +1,7 @@
+{
+  "devDependencies": {
+    "eslint": "^10.1.0",
+    "eslint-plugin-html": "^8.1.4",
+    "markdownlint-cli": "^0.48.0"
+  }
+}

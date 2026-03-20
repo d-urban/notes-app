@@ -1,0 +1,65 @@
+name: Super-Linter
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Lint Code
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install ESLint dependencies
+        run: npm install --save-dev eslint eslint-plugin-html
+
+      - name: Super-Linter
+        uses: super-linter/super-linter@v7
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEFAULT_BRANCH: main
+
+          # Enable relevant linters
+          VALIDATE_PYTHON_FLAKE8: true
+          VALIDATE_JAVASCRIPT_ES: true
+          VALIDATE_BASH: true
+          VALIDATE_MARKDOWN: true
+          VALIDATE_HTML: true
+
+          # Disable linters for languages not in this project
+          VALIDATE_PYTHON_PYLINT: false
+          VALIDATE_PYTHON_BLACK: false
+          VALIDATE_PYTHON_ISORT: false
+          VALIDATE_PYTHON_MYPY: false
+          VALIDATE_PYTHON_RUFF: false
+          VALIDATE_CSS: false
+          VALIDATE_JSON: false
+          VALIDATE_YAML: false
+          VALIDATE_XML: false
+          VALIDATE_TYPESCRIPT_ES: false
+          VALIDATE_NATURAL_LANGUAGE: false
+          VALIDATE_GITLEAKS: false
+
+          # Lint all files, not just changed ones
+          VALIDATE_ALL_CODEBASE: true
+
+          # Use project config files
+          LINTER_RULES_PATH: .
+          JAVASCRIPT_ES_CONFIG_FILE: eslint.config.mjs
+          MARKDOWN_CONFIG_FILE: .markdownlint.json
+          PYTHON_FLAKE8_CONFIG_FILE: .flake8

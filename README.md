@@ -20,29 +20,30 @@ A simple self-hosted notes app with rich text support, image pasting, search, an
 
 Install dependencies on ubuntu WSL environment:
 
-```
+```bash
 apt update
 apt install uvicorn python3-fastapi
 ```
 
 Start the server:
 
-```
+```bash
 python3 main.py
 ```
 
 Start the server in background:
 
-```
+```bash
 python3 main.py &
 ```
+
 Then open your browser at `http://localhost:8000`.
 
 ## Systemd Service (Auto-start on Boot)
 
 A script is included to set up a systemd service that starts the app automatically on boot. It dynamically resolves the working directory (from the script's location) and the current user. `sudo` is required.
 
-```
+```bash
 chmod +x create_systemd_service.sh
 ./create_systemd_service.sh
 ```
@@ -51,7 +52,7 @@ chmod +x create_systemd_service.sh
 
 If you are upgrading from an older version of the app that used a `type` column (short/long notes), run the migration script once to convert your existing database:
 
-```
+```bash
 python3 migrate_from_long_short_to_one_type.py
 ```
 

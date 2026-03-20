@@ -116,12 +116,16 @@
       filterAndRender();
     }
 
+    function stripHtmlForSearch(html) {
+      return html.replace(/<img[^>]*>/gi, '').replace(/<[^>]*>/g, ' ');
+    }
+
     function filterAndRender() {
       const q = searchInput.value.toLowerCase();
       const terms = q.split(/\s+/).filter(Boolean);
       const filtered = terms.length
         ? allNotes.filter(n => {
-            const searchable = (n.title + ' ' + (n.subtitle || '') + (searchBody.checked ? ' ' + n.body : '')).toLowerCase();
+            const searchable = (n.title + ' ' + (n.subtitle || '') + (searchBody.checked ? ' ' + stripHtmlForSearch(n.body) : '')).toLowerCase();
             return terms.every(term => searchable.includes(term));
           })
         : allNotes;
@@ -215,7 +219,11 @@
       });
     }
 
-    searchInput.addEventListener('input', filterAndRender);
+    let searchTimeout;
+    searchInput.addEventListener('input', () => {
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(filterAndRender, 250);
+    });
     searchBody.addEventListener('change', filterAndRender);
 
     bodyInput.addEventListener('input', () => {
