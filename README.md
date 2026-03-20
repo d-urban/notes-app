@@ -1,6 +1,6 @@
 # Notes App
 
-A simple self-hosted notes app with rich text support, image pasting, search, and more.
+A simple self-hosted notes app with rich text support, image pasting, search, and more. Intended to be used on WSL with ubuntu, but other distros will work with some potential minor tweaks to the instructions (Possibly a different package manager other than apt, or similar).
 
 ## Features
 
@@ -28,9 +28,14 @@ apt install uvicorn python3-fastapi
 Start the server:
 
 ```
-python main.py
+python3 main.py
 ```
 
+Start the server in background:
+
+```
+python3 main.py &
+```
 Then open your browser at `http://localhost:8000`.
 
 ## Systemd Service (Auto-start on Boot)
@@ -47,7 +52,7 @@ chmod +x create_systemd_service.sh
 If you are upgrading from an older version of the app that used a `type` column (short/long notes), run the migration script once to convert your existing database:
 
 ```
-python migrate_from_long_short_to_one_type.py
+python3 migrate_from_long_short_to_one_type.py
 ```
 
 This will back up your existing `notes.db` to `notes.db.bak` before making any changes.
