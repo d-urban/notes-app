@@ -43,9 +43,17 @@ Then open your browser at `http://localhost:8000`.
 
 A script is included to set up a systemd service that starts the app automatically on boot. It dynamically resolves the working directory (from the script's location) and the current user. `sudo` is required.
 
+The script will also automatically check `/etc/wsl.conf` and configure systemd if needed. If changes are made to `/etc/wsl.conf`, a WSL restart is required before the service will auto-start on boot — run the following in PowerShell or CMD:
+
 ```bash
-chmod +x create_systemd_service.sh
-./create_systemd_service.sh
+wsl --shutdown
+```
+
+To set up the service:
+
+```bash
+chmod +x scripts/create_systemd_service.sh
+./scripts/create_systemd_service.sh
 ```
 
 ## Database Migration
@@ -53,15 +61,15 @@ chmod +x create_systemd_service.sh
 If you are upgrading from an older version of the app that used a `type` column (short/long notes), run the migration script once to convert your existing database:
 
 ```bash
-python3 migrate_from_long_short_to_one_type.py
+python3 scripts/migrate_from_long_short_to_one_type.py
 ```
 
-This will back up your existing `notes.db` to `notes.db.bak` before making any changes.
+This will back up your existing `notes.db` to `notes.db.bak` before making any changes. A `VACUUM` is also run after migration to keep the database file size compact.
 
 ## File Overview
 
 - `main.py` — FastAPI server and API endpoints
 - `database.py` — SQLite database setup and queries
 - `index.html` — Frontend UI served by the app
-- `migrate_from_long_short_to_one_type.py` — One-time migration script for upgrading from older versions
-- `create_systemd_service.sh` — Sets up and enables a systemd service to auto-start the app on boot
+- `scripts/migrate_from_long_short_to_one_type.py` — One-time migration script for upgrading from older versions
+- `scripts/create_systemd_service.sh` — Sets up and enables a systemd service to auto-start the app on boot
