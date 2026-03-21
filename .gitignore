@@ -1,6 +1,6 @@
 __pycache__/
 node_modules/
-notes.db
+notes.db*
 *.db.bak
 *.pyc
 .nodeenv/

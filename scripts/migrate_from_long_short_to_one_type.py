@@ -3,8 +3,10 @@ import shutil
 import sqlite3
 import sys
 
-DB_FILE = "notes.db"
-DB_BACKUP = "notes.db.bak"
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+ROOT_DIR = os.path.dirname(SCRIPT_DIR)
+DB_FILE = os.path.join(ROOT_DIR, "notes.db")
+DB_BACKUP = os.path.join(ROOT_DIR, "notes.db.bak")
 
 try:
     if not os.path.exists(DB_FILE):
@@ -43,6 +45,10 @@ try:
     conn.execute("ALTER TABLE notes_new RENAME TO notes")
     conn.commit()
     conn.close()
+
+    vacuum_conn = sqlite3.connect(DB_FILE)
+    vacuum_conn.execute("VACUUM")
+    vacuum_conn.close()
 
     print(f"Success: {count} note{'s' if count != 1 else ''} migrated.")
 
