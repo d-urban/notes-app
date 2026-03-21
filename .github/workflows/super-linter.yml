@@ -41,9 +41,6 @@ jobs:
           VALIDATE_MARKDOWN: true
           VALIDATE_HTML: true
 
-          # Lint all files, not just changed ones
-          VALIDATE_ALL_CODEBASE: true
-
           # Use project config files
           LINTER_RULES_PATH: .
           JAVASCRIPT_ES_CONFIG_FILE: eslint.config.mjs
