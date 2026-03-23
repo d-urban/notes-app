@@ -3,6 +3,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 CURRENT_USER="$(id -un)"
 PYTHON_BIN="$(which python3)"
 SERVICE_NAME="notes-app"
@@ -55,7 +56,7 @@ check_wsl_conf
 echo ""
 echo "Creating systemd service..."
 echo "  User:              $CURRENT_USER"
-echo "  Working directory: $SCRIPT_DIR"
+echo "  Working directory: $ROOT_DIR"
 
 sudo tee "$SERVICE_FILE" > /dev/null <<EOF
 [Unit]
@@ -64,8 +65,8 @@ After=network.target
 
 [Service]
 User=$CURRENT_USER
-WorkingDirectory=$SCRIPT_DIR
-ExecStart=$PYTHON_BIN $SCRIPT_DIR/main.py
+WorkingDirectory=$ROOT_DIR
+ExecStart=$PYTHON_BIN $ROOT_DIR/main.py
 Restart=on-failure
 KillMode=mixed
 TimeoutStopSec=10
