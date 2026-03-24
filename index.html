@@ -142,7 +142,15 @@
 
     function applyBodyShift(bodyEl) {
       const inner = bodyEl.querySelector('.note-body-inner');
-      const firstMark = inner && inner.querySelector('mark');
+      if (!inner) return;
+      // Reset any previous positioning before measuring so offsetTop is accurate
+      inner.style.position = '';
+      inner.style.top = '';
+      inner.style.left = '';
+      inner.style.right = '';
+      bodyEl.style.height = '';
+      bodyEl.style.maxHeight = '';
+      const firstMark = inner.querySelector('mark');
       if (firstMark) {
         const shift = Math.max(0, firstMark.offsetTop - 8);
         inner.style.position = 'absolute';
@@ -213,7 +221,7 @@
           bodyEl.classList.remove('collapsed');
         }
 
-        if (terms.length && searchBody.checked) {
+        if (terms.length && searchBody.checked && bodyEl.classList.contains('collapsed')) {
           applyBodyShift(bodyEl);
         }
       });
