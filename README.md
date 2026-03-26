@@ -66,6 +66,21 @@ python3 scripts/migrate_from_long_short_to_one_type.py
 
 This will back up your existing `notes.db` to `notes.db.bak` before making any changes. A `VACUUM` is also run after migration to keep the database file size compact.
 
+## Merging Databases
+
+To combine two database files into a single `notes.db.new` file:
+
+```bash
+python3 scripts/merge_dbs.py <db_file_1> <db_file_2>
+```
+
+Both input files are backed up alongside their originals (e.g. `notes.db` → `notes.db.pre.merge`) before the merge begins. The script will abort if:
+
+- Either input file does not exist or has an incompatible schema
+- `notes.db.new` already exists in the project root
+
+Notes that are identical across both files (matching `title`, `subtitle`, and `body`) are deduplicated — only one copy is kept in the output. Rows from the first file are inserted first, followed by non-duplicate rows from the second.
+
 ## File Overview
 
 - `main.py` — FastAPI server and API endpoints
@@ -73,3 +88,4 @@ This will back up your existing `notes.db` to `notes.db.bak` before making any c
 - `index.html` — Frontend UI served by the app
 - `scripts/migrate_from_long_short_to_one_type.py` — One-time migration script for upgrading from older versions
 - `scripts/create_systemd_service.sh` — Sets up and enables a systemd service to auto-start the app on boot
+- `scripts/merge_dbs.py` — Merges two database files into `notes.db.new`, with deduplication and pre-merge backups
